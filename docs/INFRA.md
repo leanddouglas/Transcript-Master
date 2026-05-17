@@ -2,9 +2,21 @@
 
 This is the standard pattern Mr. D uses to expose every small app he builds
 on `hermes-hub` (his Mac mini) to the public internet. It's the same setup
-that powers `https://transcript.mrdapps.com/` (Transcript-Master).
+that powers every `mrdapps.com` hostname.
 
 You only set it up once. After that, adding a new app is ~4 lines.
+
+## Apps currently live behind this tunnel
+
+| Host                        | Local port | Repo                                                                                    |
+| --------------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| `mrdapps.com`, `www.mrdapps.com` | `8090` | [`leanddouglas/mrdapps-site`](https://github.com/leanddouglas/mrdapps-site) — landing page / dashboard |
+| `transcript.mrdapps.com`    | `8765`     | [`leanddouglas/Transcript-Master`](https://github.com/leanddouglas/Transcript-Master) — this repo |
+
+The landing page polls each app's `/health` endpoint every 30s and shows a
+live status dot, so it doubles as a free uptime check for everything on the
+tunnel. If you add a new app, also add a card to `mrdapps-site` so it shows
+up there.
 
 ---
 
@@ -22,9 +34,9 @@ Internet user
    cloudflared (on hermes-hub, runs as a LaunchAgent)
      │
      ▼
+   localhost:8090  → mrdapps-site (landing page / dashboard)
    localhost:8765  → Transcript-Master Python server
-   localhost:9000  → next app (when you add one)
-   localhost:NNNN  → ...
+   localhost:NNNN  → next app (when you add one)
 ```
 
 Key properties:
