@@ -38,6 +38,7 @@ youtube-transcript-app/
 │                                            the live one fresh each time)
 │
 ├── scripts/
+│   ├── add-app.sh     one-command add-new-app-to-the-Cloudflare-Tunnel
 │   ├── install/       one-time setup -- always start here
 │   │   ├── install.command            sync src -> runtime + restart agent
 │   │   ├── install.sh                 (called by install.command)
@@ -137,6 +138,24 @@ keep them out).
 This is the recipe Mr. D uses for every new little tool he builds. Say you've
 built a second app — call it `notes` — and it runs on `localhost:9000`. To
 make it reachable at `https://notes.mrdapps.com/`:
+
+### The one-command way
+
+```bash
+# After your app is running on its port and has a LaunchAgent:
+bash scripts/add-app.sh notes 9000
+#  → adds notes.mrdapps.com → http://localhost:9000
+
+# Optional: custom hostname (not <name>.mrdapps.com)
+bash scripts/add-app.sh dash 9100 admin.mrdapps.com
+```
+
+The script backs up `~/.cloudflared/config.yml`, inserts the new ingress
+block above the catch-all, creates the DNS record, reloads cloudflared, and
+curls the public URL to confirm routing. Re-running with an already-configured
+hostname is a safe no-op.
+
+### What it does under the hood (the manual recipe)
 
 ```bash
 # 1. Make sure your app is actually running on its port.

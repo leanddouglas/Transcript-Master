@@ -102,7 +102,29 @@ ingress:
 
 ---
 
-## Add a new app — the 4-step recipe
+## Add a new app — the one-command way
+
+Once the app is running on its port and has a LaunchAgent (Step 1 below):
+
+```bash
+bash scripts/add-app.sh <name> <port> [hostname]
+
+# Examples
+bash scripts/add-app.sh notes 9000
+bash scripts/add-app.sh dash  9100 admin.mrdapps.com
+```
+
+`scripts/add-app.sh` does Steps 2–4 below in one shot: backs up
+`~/.cloudflared/config.yml`, inserts the new ingress block above the catch-all,
+creates the DNS CNAME via `cloudflared tunnel route dns`, reloads the
+cloudflared LaunchAgent, waits 5s, and curls the public URL to confirm
+routing. Re-running with an already-configured hostname is a safe no-op.
+
+The rest of this section is **what the script does under the hood** — read it
+when something goes wrong, or when you need to do something the script
+doesn't cover (e.g. removing an app, custom ingress rules).
+
+## Add a new app — the 4-step recipe (manual reference)
 
 Say you've built a new app called `notes` and it's running on `localhost:9000`.
 You want it reachable at `https://notes.mrdapps.com/`.
