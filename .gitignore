@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+
+# macOS
+.DS_Store
+._*
+
+# Secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+
+# Local runtime artifacts (large, machine-specific)
+logs/
+recordings/
+_inspect/
+
+# Editor / OS junk
+.vscode/
+.idea/
+*.swp

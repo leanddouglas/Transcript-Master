@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.servusgroup.yt-transcript</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/dougmacminipro/Documents/youtube-transcript-app/serve.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/dougmacminipro/Documents/youtube-transcript-app</string>
+
+    <!-- Run at user login. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart on crash. macOS throttles to once every 10 s. -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Make sure subprocesses (yt-dlp installed via Homebrew) are reachable. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/dougmacminipro</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/dougmacminipro/Library/Logs/yt-transcript.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/dougmacminipro/Library/Logs/yt-transcript.log</string>
+
+    <!-- Keep agent process alive even when no user is logged in graphically. -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
