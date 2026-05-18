@@ -8,15 +8,91 @@ You only set it up once. After that, adding a new app is ~4 lines.
 
 ## Apps currently live behind this tunnel
 
-| Host                        | Local port | Repo                                                                                    |
-| --------------------------- | ---------- | --------------------------------------------------------------------------------------- |
-| `mrdapps.com`, `www.mrdapps.com` | `8090` | [`leanddouglas/mrdapps-site`](https://github.com/leanddouglas/mrdapps-site) — landing page / dashboard |
-| `transcript.mrdapps.com`    | `8765`     | [`leanddouglas/Transcript-Master`](https://github.com/leanddouglas/Transcript-Master) — this repo |
+| Host                              | Local port | Access | Repo / notes                                                                                                       |
+| --------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| `mrdapps.com`, `www.mrdapps.com`  | `8090`     | public | [`leanddouglas/mrdapps-site`](https://github.com/leanddouglas/mrdapps-site) — landing page / dashboard             |
+| `transcript.mrdapps.com`          | `8765`     | public | [`leanddouglas/Transcript-Master`](https://github.com/leanddouglas/Transcript-Master) — this repo                  |
+| `tracker.mrdapps.com`             | `8800`     | needs Access | [`leanddouglas/MrD-Tracker`](https://github.com/leanddouglas/MrD-Tracker) — single-file OSINT tracker         |
+| `books.mrdapps.com`               | `8801`     | needs Access | [`leanddouglas/onebooks`](https://github.com/leanddouglas/onebooks) — SmartLedger (Supabase-backed)          |
+| `ops.mrdapps.com`                 | `8802`     | needs Access | [`leanddouglas/carpet-ops`](https://github.com/leanddouglas/carpet-ops) — offline-first PWA, business ledger |
+| `geo.mrdapps.com`                 | `8766` (TS) | needs Access | [`leanddouglas/geo-audit-app`](https://github.com/leanddouglas/geo-audit-app) — reuses existing Tailscale-bound service at `100.121.62.15:8766` |
+| `training.mrdapps.com`            | `8804`     | needs Access | [`leanddouglas/servus-training`](https://github.com/leanddouglas/servus-training) — Servus floor-care training |
+| `sorriso.mrdapps.com`             | `8805`     | public | [`leanddouglas/SorrisoDentalClinic`](https://github.com/leanddouglas/SorrisoDentalClinic) — client static rebuild  |
+| `sorriso-themes.mrdapps.com`      | `8806`     | public | [`leanddouglas/sorriso-dental-clinic-themes`](https://github.com/leanddouglas/sorriso-dental-clinic-themes) — 4 design variants for client review |
+| `cars.mrdapps.com`                | `8807`     | needs Access | [`leanddouglas/car-finder-bot`](https://github.com/leanddouglas/car-finder-bot) — Flask dashboard + scrapers (Telegram bot disabled until tokens set) |
+| `scrape.mrdapps.com`              | `8808`     | needs Access | [`leanddouglas/scraypr-app`](https://github.com/leanddouglas/scraypr-app) — Express scrape API (frontend not served on `/`; routes live under `/api/`) |
+| `simmind.mrdapps.com`             | `8809`     | needs Access | [`leanddouglas/simmind`](https://github.com/leanddouglas/simmind) — FastAPI prediction engine (no root route; UI at `/docs`) |
+
+**"needs Access"** above means the app is publicly reachable on the tunnel
+but has **no Cloudflare Access policy yet** — Mr. D must add one manually in
+the Cloudflare Zero Trust dashboard before treating these as private. See the
+"Cloudflare Access — not yet wired" section below.
 
 The landing page polls each app's `/health` endpoint every 30s and shows a
 live status dot, so it doubles as a free uptime check for everything on the
 tunnel. If you add a new app, also add a card to `mrdapps-site` so it shows
 up there.
+
+### How the new apps are staged on disk
+
+The first three "live behind this tunnel" apps (`mrdapps-site`,
+`Transcript-Master`, `geo-audit-app`) run from various locations. The 9 new
+apps added on **2026-05-17** all follow one pattern:
+
+- **Git source-of-truth:** `~/Documents/<repo>/` — `git pull` here to update.
+- **Served from:** `~/Library/Application Support/<slug>/` — `rsync`'d from
+  the repo at deploy time.
+
+The split is a workaround for a macOS TCC restriction: launchd-spawned
+processes cannot read `~/Documents` without Full Disk Access. Files in
+`~/Library/Application Support/` are not TCC-protected, which is why the
+existing `yt-transcript` and `geo-audit` services follow the same pattern.
+
+**To redeploy after a `git pull`:**
+
+```bash
+# Static apps (just files) — example for tracker:
+rsync -a --delete ~/Documents/MrD-Tracker/ \
+    "$HOME/Library/Application Support/tracker/"
+
+# Python apps with venv (cars, simmind):
+rsync -a --delete --exclude=.venv --exclude=__pycache__ \
+    ~/Documents/car-finder-bot/ "$HOME/Library/Application Support/cars/"
+# (Re-run `pip install -r requirements.txt` inside the AppSupport venv if
+# requirements.txt changed.)
+
+# Node app (scrape):
+rsync -a --delete --exclude=node_modules \
+    ~/Documents/scraypr-app/ "$HOME/Library/Application Support/scrape/"
+# (Re-run `npm install` inside the AppSupport copy if package.json changed.)
+
+# Then restart the launchd job:
+launchctl kickstart -k "gui/$(id -u)/com.servusgroup.tracker"
+```
+
+### Cloudflare Access — not yet wired
+
+The 8 "needs Access" apps above are **publicly reachable on the open
+internet** as of 2026-05-17. No `CLOUDFLARE_API_TOKEN` was available at
+deploy time and `cloudflared` cannot create Access policies, so the gating
+step was deferred.
+
+**Highest urgency — `books.mrdapps.com` (`onebooks`).** This is Doug's
+real-money business + personal finance ledger. It loads against the same
+Supabase project the Netlify deploy uses, so the actual security boundary is
+the project's Row-Level Security policies (see `AUDIT-2026-05-17.md` §2a).
+RLS verification has not been done yet — until both RLS is verified AND
+Cloudflare Access is enabled, treat `books.mrdapps.com` as exposed.
+
+**To gate any "needs Access" app:**
+
+1. Cloudflare Zero Trust dashboard → Access → Applications → Add an
+   application → Self-hosted.
+2. Application domain: e.g. `tracker.mrdapps.com`.
+3. Identity provider: One-time PIN to your email (`doug@servusgroup.com`)
+   for the simplest start; add Google/GitHub later if you want.
+4. Policy: Allow → Emails → `doug@servusgroup.com`.
+5. Save. The next request to that hostname will hit a Cloudflare login page.
 
 ---
 
