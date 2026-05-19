@@ -115,6 +115,78 @@ Internet user
    localhost:NNNN  → next app (when you add one)
 ```
 
+---
+
+## Edge: Caddy (installed, not in the public request path) — 2026-05-18
+
+Doug installed Caddy + a Cloudflare-DNS-issued wildcard cert for
+`*.mrdapps.com` on 2026-05-18. **It is not currently in the request path
+for any `mrdapps.com` hostname.** Cloudflare Tunnel still routes every
+production request straight to the app's `localhost` port — Caddy sits to
+one side of that flow.
+
+What's actually running:
+
+- Process: `caddy run --config /etc/caddy/Caddyfile` (PID owned by `root`).
+- Listener: `:443` on all interfaces (per the Caddy admin API at
+  `http://127.0.0.1:2019/config/`). No `:80` listener.
+- Caddyfile (`/etc/caddy/Caddyfile`) handles only `hero.mrdapps.com`,
+  `hermes.mrdapps.com`, and `memory.mrdapps.com`. Every other host under
+  `*.mrdapps.com` falls through to a `404 "Subdomain not configured"` static
+  response. None of the apps in the table above route through Caddy.
+- TLS: `tls { dns cloudflare {env.CF_API_TOKEN} }` — wildcard cert auto-issued
+  via the Cloudflare DNS-01 challenge. Cert + key live under
+  `/var/lib/caddy/.local/share/caddy/` (Caddy default; root-owned).
+
+What this means in practice:
+
+- **Public traffic to `books.mrdapps.com`, `tracker.mrdapps.com`, etc. is
+  unchanged.** It still goes Cloudflare edge → cloudflared → `localhost:NNNN`,
+  per `~/.cloudflared/config.yml`. Caddy is not consulted.
+- **The wildcard cert is essentially idle.** Nothing in the current
+  Cloudflare-Tunnel path uses it (Cloudflare terminates TLS at the edge with
+  its own cert). The cert is ready if/when something is pointed at Caddy.
+- **`hero.mrdapps.com` is wired to `localhost:8001` but `8001` has no app.**
+  That's the Hero qwen3 chat backend that went missing when a prior agent
+  rebound port `8765`. Reaching `https://hero.mrdapps.com` via Cloudflare
+  Tunnel will 502 because there's no tunnel ingress entry for it either.
+
+If you want Caddy to gate or front any of the production apps (basic auth,
+rate-limiting, etc.), the change required is **on the cloudflared side, not
+the Caddy side**: edit `~/.cloudflared/config.yml` so the relevant
+`hostname:` entries point `service: https://localhost` (with a Host header)
+instead of `http://localhost:NNNN`, and add matching `handle` blocks in
+`/etc/caddy/Caddyfile` for those hosts. That swap was **not** done overnight
+on 2026-05-18 — adding `basic_auth` to the Caddyfile alone would gate
+nothing, because the public requests don't transit Caddy.
+
+### To reload Caddy
+
+Caddy was started directly by root (not via `brew services` or a LaunchDaemon),
+so `sudo` is required for any restart. The admin API at `127.0.0.1:2019`
+accepts config changes without sudo, but a clean reload from the file is:
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo caddy reload   --config /etc/caddy/Caddyfile
+```
+
+### To make Caddy the local edge (future work, not done)
+
+High-level — do not run this overnight without testing each step:
+
+1. Decide on a Caddy listener port (e.g., `:8443`) that cloudflared can hit.
+2. Add `handle` blocks in `/etc/caddy/Caddyfile` for every `*.mrdapps.com`
+   host with `reverse_proxy localhost:NNNN` plus any `basic_auth` directives.
+3. Update `~/.cloudflared/config.yml` so each `hostname:` entry forwards to
+   `https://localhost:8443` with `originRequest.httpHostHeader: <host>` so
+   Caddy can route by Host.
+4. Reload cloudflared, then reload Caddy. Verify each host end-to-end.
+5. Only after all hosts are confirmed working should the catch-all 404 stay
+   in place — until then, leave a known-good rollback in `config.yml.bak.*`.
+
+---
+
 Key properties:
 
 - **No port forwarding on the router.** Nothing is open from the internet to
