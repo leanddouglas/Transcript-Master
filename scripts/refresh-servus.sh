@@ -21,5 +21,5 @@ if [ -f "$DST/requirements.txt" ] && [ -x "$DST/.venv/bin/pip" ]; then
   "$DST/.venv/bin/pip" install --quiet -r "$DST/requirements.txt"
 fi
 
-launchctl kickstart -k "gui/$(id -u)/com.servusgroup.servus-bot"
+launchctl kickstart -k "gui/$(id -u)/com.servusgroup.ubot"
 echo "✓ Refreshed and restarted servus-bot"

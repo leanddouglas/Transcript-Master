@@ -22,7 +22,7 @@ You only set it up once. After that, adding a new app is ~4 lines.
 | `cars.mrdapps.com`                | `8807`     | needs Access | [`leanddouglas/car-finder-bot`](https://github.com/leanddouglas/car-finder-bot) — Flask dashboard + scrapers (Telegram bot disabled until tokens set) |
 | `scrape.mrdapps.com`              | `8808`     | needs Access | [`leanddouglas/scraypr-app`](https://github.com/leanddouglas/scraypr-app) — Express scrape API (frontend not served on `/`; routes live under `/api/`) |
 | `simmind.mrdapps.com`             | `8809`     | needs Access | [`leanddouglas/simmind`](https://github.com/leanddouglas/simmind) — FastAPI prediction engine (no root route; UI at `/docs`) |
-| `servusbotassistant.mrdapps.com`  | `8767`     | needs Access | [`leanddouglas/servus-bot`](https://github.com/leanddouglas/servus-bot) — Flask chat UI over local Ollama (`qwen3:14b`). In-app auth (Flask-Login + SQLite + bcrypt) planned as a separate followup; no Cloudflare Access policy yet, so reachable to anyone with the URL. iMac source-of-truth at `~/Documents/Claude Projects/servus-bot/` → rsync to Mac mini `~/servus-bot/` → `scripts/refresh-servus.sh` re-stages to the launchd runtime. |
+| `ubot.mrdapps.com`                | `8767`     | needs Access | [`leanddouglas/servus-bot`](https://github.com/leanddouglas/servus-bot) — Flask chat UI over local Ollama (`qwen3:14b`); branded "Ubot" on the dashboard, launchd label `com.servusgroup.ubot`. In-app auth (Flask-Login + SQLite + bcrypt) planned as a separate followup; no Cloudflare Access policy yet, so reachable to anyone with the URL. iMac source-of-truth at `~/Documents/Claude Projects/servus-bot/` → rsync to Mac mini `~/servus-bot/` → `scripts/refresh-servus.sh` re-stages to the launchd runtime. (Briefly also reachable at `servusbotassistant.mrdapps.com` on 2026-05-19 during a rename; that CNAME is orphaned and now 404s.) |
 
 **"needs Access"** above means the app is publicly reachable on the tunnel
 but has **no Cloudflare Access policy yet** — Mr. D must add one manually in
@@ -83,7 +83,7 @@ bash ~/Documents/youtube-transcript-app/scripts/refresh-servus.sh
 ```
 
 The helper re-installs `requirements.txt` if it changed, then restarts
-`com.servusgroup.servus-bot`. Use this after every iMac→Mac mini rsync.
+`com.servusgroup.ubot`. Use this after every iMac→Mac mini rsync.
 
 ### Cloudflare Access — not yet wired
 
