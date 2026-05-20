@@ -22,6 +22,7 @@ You only set it up once. After that, adding a new app is ~4 lines.
 | `cars.mrdapps.com`                | `8807`     | needs Access | [`leanddouglas/car-finder-bot`](https://github.com/leanddouglas/car-finder-bot) — Flask dashboard + scrapers (Telegram bot disabled until tokens set) |
 | `scrape.mrdapps.com`              | `8808`     | needs Access | [`leanddouglas/scraypr-app`](https://github.com/leanddouglas/scraypr-app) — Express scrape API (frontend not served on `/`; routes live under `/api/`) |
 | `simmind.mrdapps.com`             | `8809`     | needs Access | [`leanddouglas/simmind`](https://github.com/leanddouglas/simmind) — FastAPI prediction engine (no root route; UI at `/docs`) |
+| `servusbotassistant.mrdapps.com`  | `8767`     | needs Access | [`leanddouglas/servus-bot`](https://github.com/leanddouglas/servus-bot) — Flask chat UI over local Ollama (`qwen3:14b`). In-app auth (Flask-Login + SQLite + bcrypt) planned as a separate followup; no Cloudflare Access policy yet, so reachable to anyone with the URL. iMac source-of-truth at `~/Documents/Claude Projects/servus-bot/` → rsync to Mac mini `~/servus-bot/` → `scripts/refresh-servus.sh` re-stages to the launchd runtime. |
 
 **"needs Access"** above means the app is publicly reachable on the tunnel
 but has **no Cloudflare Access policy yet** — Mr. D must add one manually in
@@ -69,6 +70,20 @@ rsync -a --delete --exclude=node_modules \
 # Then restart the launchd job:
 launchctl kickstart -k "gui/$(id -u)/com.servusgroup.tracker"
 ```
+
+**Servus Bot (`servusbotassistant`) — one-command refresh:**
+
+Servus Bot follows a slightly different layout — the iMac rsyncs to `~/servus-bot/`
+(not `~/Documents/`) because that's where Mr. D's existing iMac→Mac mini rsync
+workflow lands. From there, `scripts/refresh-servus.sh` syncs the home-dir
+edit copy into the launchd runtime location and kickstarts the service:
+
+```bash
+bash ~/Documents/youtube-transcript-app/scripts/refresh-servus.sh
+```
+
+The helper re-installs `requirements.txt` if it changed, then restarts
+`com.servusgroup.servus-bot`. Use this after every iMac→Mac mini rsync.
 
 ### Cloudflare Access — not yet wired
 
